@@ -22,14 +22,6 @@ const useTodoStore = create((set) => ({
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
       ),
     })),
-
-  // Edit a todo by ID
-  editTodo: (id, newText) =>
-    set((state) => ({
-      todos: state.todos.map((todo) =>
-        todo.id === id ? { ...todo, text: newText } : todo
-      ),
-    })),
 }));
 
 export default useTodoStore;

@@ -1,126 +1,123 @@
-/* eslint-disable no-unused-vars */
-import React, { useState } from 'react';
-import useTodoStore from '../store/todoStore';
-import styles from './TodoList.module.css'; // Import CSS Module
+import { useState } from "react";
+import styles from "./TodoList.module.css";
+import { getInitialData } from "../utils/data";
 
 const TodoList = () => {
-  const { todos, addTodo, removeTodo, toggleTodo, editTodo } = useTodoStore();
-  const [newTodo, setNewTodo] = useState('');
-  const [editingTodoId, setEditingTodoId] = useState(null);
-  const [editingText, setEditingText] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+  const [todos, setTodos] = useState(getInitialData());
+  const [newTitle, setNewTitle] = useState("");
+  const [newBody, setNewBody] = useState("");
+  const [editingTodo, setEditingTodo] = useState(null);
 
-  // Add new todo
+  // Add a new todo
   const handleAddTodo = () => {
-    if (newTodo.trim()) {
-      addTodo(newTodo.trim());
-      setNewTodo('');
-      setErrorMessage('');
-    } else {
-      setErrorMessage('Task cannot be empty.');
+    if (!newTitle.trim() || !newBody.trim()) {
+      alert("Title and description cannot be empty.");
+      return;
+    }
+    const newTodo = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Unique ID
+      title: newTitle.trim(),
+      body: newBody.trim(),
+      archived: false,
+      createdAt: new Date().toISOString(),
+    };
+    setTodos([...todos, newTodo]);
+    setNewTitle("");
+    setNewBody("");
+  };
+
+  // Save changes to an edited todo
+  const handleSaveTodo = () => {
+    if (!newTitle.trim() || !newBody.trim()) {
+      alert("Title and description cannot be empty.");
+      return;
+    }
+    setTodos((prevTodos) =>
+      prevTodos.map((todo) =>
+        todo.id === editingTodo.id
+          ? { ...todo, title: newTitle.trim(), body: newBody.trim() }
+          : todo
+      )
+    );
+    setEditingTodo(null);
+    setNewTitle("");
+    setNewBody("");
+  };
+
+  // Delete a todo with confirmation
+  const handleDeleteTodo = (id) => {
+    const todoToDelete = todos.find((todo) => todo.id === id);
+    if (todoToDelete && window.confirm(`Delete "${todoToDelete.title}"?`)) {
+      setTodos(todos.filter((todo) => todo.id !== id));
     }
   };
 
-  // Start editing mode
-  const handleEditTodo = (id, text) => {
-    setEditingTodoId(id);
-    setEditingText(text);
-    setErrorMessage('');
-  };
-
-  // Save edited todo
-  const handleSaveEdit = () => {
-    if (editingText.trim()) {
-      editTodo(editingTodoId, editingText.trim());
-      setEditingTodoId(null);
-      setEditingText('');
-      setErrorMessage('');
-    } else {
-      setErrorMessage('Edited task cannot be empty.');
-    }
-  };
-
-  // Cancel editing
+  // Cancel editing mode
   const handleCancelEdit = () => {
-    setEditingTodoId(null);
-    setEditingText('');
-    setErrorMessage('');
+    setEditingTodo(null);
+    setNewTitle("");
+    setNewBody("");
   };
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>Todo List</h1>
+      <h1 className={styles.title}>To-Do List</h1>
+
       <div className={styles.inputContainer}>
         <input
           type="text"
-          value={newTodo}
-          onChange={(e) => setNewTodo(e.target.value)}
-          placeholder="Add a new task"
+          value={newTitle}
+          onChange={(e) => setNewTitle(e.target.value)}
+          placeholder="Title"
           className={styles.input}
         />
-        <button onClick={handleAddTodo} className={styles.addButton}>
-          Add Task
-        </button>
+        <textarea
+          value={newBody}
+          onChange={(e) => setNewBody(e.target.value)}
+          placeholder="Description"
+          className={styles.textarea}
+        />
+        {editingTodo ? (
+          <>
+            <button onClick={handleSaveTodo} className={styles.saveButton}>
+              Save
+            </button>
+            <button onClick={handleCancelEdit} className={styles.cancelButton}>
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button onClick={handleAddTodo} className={styles.addButton}>
+            Add Task
+          </button>
+        )}
       </div>
-      {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
 
-      <ul className={styles.list}>
-        {todos.map((todo) => (
-          <li key={todo.id} className={styles.listItem}>
-            {editingTodoId === todo.id ? (
-              <div className={styles.editContainer}>
-                <input
-                  type="text"
-                  value={editingText}
-                  onChange={(e) => setEditingText(e.target.value)}
-                  placeholder="Edit your task"
-                  className={styles.input}
-                />
-                <button
-                  onClick={handleSaveEdit}
-                  className={styles.saveButton}
-                  style={{
-                    cursor: editingText.trim() ? 'pointer' : 'not-allowed',
-                    backgroundColor: editingText.trim() ? '#28a745' : '#ccc',
-                  }}
-                >
-                  Save
-                </button>
-                <button onClick={handleCancelEdit} className={styles.cancelButton}>
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <div className={styles.todoItem}>
-                <input
-                  type="checkbox"
-                  checked={todo.completed}
-                  onChange={() => toggleTodo(todo.id)}
-                  className={styles.checkbox}
-                />
-                <span
-                  className={styles.todoText}
-                  style={{
-                    textDecoration: todo.completed ? 'line-through' : 'none',
-                    color: todo.completed ? '#6c757d' : '#212529',
-                  }}
-                >
-                  {todo.text}
+      {todos.length === 0 ? (
+        <p className={styles.noData}>No tasks available.</p>
+      ) : (
+        <ul className={styles.list}>
+          {todos.map((todo) => (
+            <li key={todo.id} className={styles.listItem}>
+              <h3 className={styles.todoTitle}>
+                {todo.title}
+                <span className={styles.date}>
+                  {new Date(todo.createdAt).toLocaleDateString("id-ID")}
                 </span>
+              </h3>
+              <p className={styles.todoBody}>{todo.body}</p>
+              <div className={styles.actions}>
                 <button
-                  onClick={() => handleEditTodo(todo.id, todo.text)}
-                  className={styles.editButton}
+                  onClick={() => handleDeleteTodo(todo.id)}
+                  className={styles.deleteButton}
                 >
-                  ✏️
-                </button>
-                <button onClick={() => removeTodo(todo.id)} className={styles.deleteButton}>
-                  🗑️
+                  Delete
                 </button>
               </div>
-            )}
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 };
